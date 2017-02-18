@@ -1,0 +1,5 @@
+db/assets
+node_modules
+npm-debug.log
+.DS_Store
+sftp-config.js

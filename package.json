@@ -1,0 +1,15 @@
+{
+  "name": "gaman",
+  "version": "1.0.0",
+  "description": "manga reader maybe",
+  "main": "index.js",
+  "repository": "git@github.com:kigiri/gaman.git",
+  "license": "MIT",
+  "dependencies": {
+    "htmlparser2": "^3.9.2",
+    "izi": "^2.0.1",
+    "lodash": "^4.17.4",
+    "node-fetch": "^1.6.3",
+    "wavy": "^1.0.3"
+  }
+}
