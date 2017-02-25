@@ -1,5 +1,19 @@
 global.fetch = require('node-fetch') // poly fetch
 const apiBuilder = require('izi/api-builder')
+const routes = [
+  'gaman/progress',
+]
+
+const documents = [
+  'author',
+  'group',
+  'publisher',
+  'release',
+  'serie',
+]
+
+documents.forEach(name => routes.push(`gaman/${name}`, `gaman/${name}Status`))
+
 const addDocument = (acc, key) => (acc[key] = {
   arg: 'id',
   methods: {
@@ -9,13 +23,7 @@ const addDocument = (acc, key) => (acc[key] = {
   },
 }, acc)
 
-const api = apiBuilder('db.oct.ovh', [
-  'gaman/progress',
-  'gaman/serie',
-  'gaman/seriesStatus',
-  'gaman/author',
-  'gaman/authorStatus',
-].reduce(addDocument, {
+const api = apiBuilder('db.oct.ovh', routes.reduce(addDocument, {
   '_count': 'post',
 }
 ))

@@ -18,7 +18,7 @@
     "htmlparser2": "^3.9.2",
     "inferno": "^1.3.0-rc.3",
     "inferno-create-element": "^1.3.0-rc.3",
-    "izi": "^2.0.1",
+    "izi": "git://github.com/kigiri/izi.git#master",
     "lodash": "^4.17.4",
     "node-fetch": "^1.6.3",
     "performance-now": "^0.2.0",

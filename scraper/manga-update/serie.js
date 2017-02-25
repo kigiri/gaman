@@ -1,13 +1,12 @@
 const oops = require('izi/oops')
 const {
-  $,
   $$,
   raw,
   bool,
   toText,
   imgSrc,
   linkIds,
-  cleanCat,
+  cleanKey,
   allLines,
 } = require('~/scraper/parse-utils')
 
@@ -67,7 +66,7 @@ const parseResult = ({ title, cat, content }) => {
   const data = { title: toText(title[0]) }
 
   cat.forEach((el, i) => {
-    const key = camelCase(cleanCat(toText(el)))
+    const key = cleanKey(el)
     const parser = catParsers[key]
 
     if (!parser) return

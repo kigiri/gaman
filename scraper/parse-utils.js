@@ -19,6 +19,7 @@ const allLines = el => el.children
   .map(toText)
   .filter(Boolean)
 
+const num = el => Number(toText(el))
 const bool = el => toText(el) === 'Yes'
 
 const imgSrc = el => {
@@ -31,10 +32,12 @@ const href = el => {
   return a && a.attribs.href
 }
 
+
 module.exports = {
   $,
   $$,
   raw,
+  num,
   bool,
   href,
   imgSrc,
