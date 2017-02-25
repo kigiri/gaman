@@ -3,6 +3,7 @@ const oops = require('izi/oops')
 const each = require('izi/collection/each')
 const map = require('izi/collection/map')
 const db = require('~/db')
+
 const fetcher = require('~/scraper/fetcher')
 const scrap = {
   author: require('./author'),
@@ -31,8 +32,8 @@ const setStatus = (type, id, status) => db[`${type}Status`].put(id, {
   ts: Date.now(),
 })
 
-const getProgress = type => db.progress(type).then(ret => ret._source.progress)
-const setProgress = (type, progress) => db.progress.put(type, { progress })
+const getProgress = type => db.progress(type)
+const setProgress = (type, progress) => db.progress.put(type, progress)
   .then(() => progress)
 
 const actions = {}
@@ -49,7 +50,6 @@ const syncStatus = (type, id, sync) => {
 each((index, type) => {
   const notFoundMarkers = flow.stack()
   const syncDocument = id => db[`${type}Status`](id)
-    .then(db._source)
     .then(sync => syncStatus(type, id, sync))
     .catch(oops[404].handle(() => setStatus(type, id, 'fetching')
       .then(() => db[type](id)
@@ -81,7 +81,6 @@ each((index, type) => {
 }, types)
 
 const syncRelease = page => db.releaseStatus(page)
-  .then(db._source)
   .then(sync => syncStatus('release', page, sync))
   .catch(oops[404].handle(() => setStatus('release', page, 'fetching')
     .then(() => scrap.release(page)
@@ -140,3 +139,4 @@ const mangaUpdateRss = rss({
 
 mangaUpdateRss(res => res.map(getTitle).forEach(t => console.log(t)))
 */
+
