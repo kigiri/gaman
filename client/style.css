@@ -1,0 +1,8 @@
+html, body {
+  background: hsl(231, 15%,  18%);
+  color: hsl(225, 27%,  51%);
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: monospace;
+}
