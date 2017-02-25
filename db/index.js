@@ -30,9 +30,7 @@ const api = apiBuilder('db.oct.ovh', routes.reduce(addDocument, {
 module.exports = api.gaman
 module.exports._source = res => res._source
 
-module.exports.lockError = oops('redis-locked-error')
-
-const w = _ => (console.log(_), _)
+const lockError = module.exports.lockError = oops('redis-locked-error')
 
 const toApi = resolveId => {
   const apiCall = id => redis.call('get', resolveId(id))
@@ -47,7 +45,7 @@ const toApi = resolveId => {
 
   apiCall.setnx = (id, value) =>
     redis.call('setnx', resolveId(id), JSON.stringify(value))
-      .then(ret => w(Number(ret)) || Promise.reject(lockError()))
+      .then(ret => Number(ret) || Promise.reject(lockError()))
 
   return apiCall
 }
