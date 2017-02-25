@@ -1,8 +1,6 @@
 const oops = require('izi/oops')
 const YoRedis = require('yoredis')
 const redis = new YoRedis({ url: 'redis://91.121.220.177:6379' })
-const redisSet = (key, value) => redis.call('set', key, value)
-const redisGet = key => redis.call('get', key)
 
 global.fetch = require('node-fetch') // poly fetch
 const apiBuilder = require('izi/api-builder')
@@ -32,17 +30,23 @@ const api = apiBuilder('db.oct.ovh', routes.reduce(addDocument, {
 module.exports = api.gaman
 module.exports._source = res => res._source
 
+module.exports.lockError = oops('redis-locked-error')
+
 const toApi = resolveId => {
-  const apiCall = id => redisGet(resolveId(id))
+  const apiCall = id => redis.call('get', resolveId(id))
     .then(JSON.parse)
     .then(val => {
-      if (val === null || val === undefined) {
-        throw oops[404]()
-      }
-      console.log({val})
-      return val
+      if (val !== null && val !== undefined) return val
+      throw oops[404]()
     })
-  apiCall.put = (id, value) => redisSet(resolveId(id), JSON.stringify(value))
+
+  apiCall.put = (id, value) =>
+    redis.call('set', resolveId(id), JSON.stringify(value))
+
+  apiCall.setnx = (id, value) =>
+    redis.call('setnx', resolveId(id), JSON.stringify(value))
+      .then(ret => ret || Promise.reject(lockError()))
+
   return apiCall
 }
 

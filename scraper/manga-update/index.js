@@ -32,6 +32,11 @@ const setStatus = (type, id, status) => db[`${type}Status`].put(id, {
   ts: Date.now(),
 })
 
+const initStatus = (type, id, status) => db[`${type}Status`].setnx(id, {
+  status: 'fetching',
+  ts: Date.now(),
+})
+
 const getProgress = type => db.progress(type)
 const setProgress = (type, progress) => db.progress.put(type, progress)
   .then(() => progress)
@@ -51,7 +56,7 @@ each((index, type) => {
   const notFoundMarkers = flow.stack()
   const syncDocument = id => db[`${type}Status`](id)
     .then(sync => syncStatus(type, id, sync))
-    .catch(oops[404].handle(() => setStatus(type, id, 'fetching')
+    .catch(oops[404].handle(() => initStatus(type, id)
       .then(() => db[type](id)
         .then(db._source)
         .catch(oops[404].handle(() => scrap[type](id)))
@@ -67,7 +72,9 @@ each((index, type) => {
           console.log(`${type} #${id} not found, skipping`)
           notFoundMarkers.push(() => setStatus(type, id, 'not found'))
           throw err
-        })))))
+        })))
+      .catch(db.lockError.handle(() =>
+        console.log(`${type} #${id} caugth in locking... skipping !`)))))
 
   actions[type] = {
     get: id => db[type](id)
@@ -82,7 +89,7 @@ each((index, type) => {
 
 const syncRelease = page => db.releaseStatus(page)
   .then(sync => syncStatus('release', page, sync))
-  .catch(oops[404].handle(() => setStatus('release', page, 'fetching')
+  .catch(oops[404].handle(() => initStatus('release', page)
     .then(() => scrap.release(page)
       .then(data => flow.serie(data.map((release, i) => () =>
         db.release.put(((page - 1) * 100) + i + 1, release).then(() =>
@@ -92,7 +99,9 @@ const syncRelease = page => db.releaseStatus(page)
         getProgress(5)
           .then(lastId => lastId < page && setProgress(5, page)),
       ]))
-      .then(() => console.log(`release page ${page} - added`)))))
+      .then(() => console.log(`release page ${page} - added`)))
+    .catch(db.lockError.handle(() =>
+      console.log(`${type} #${id} caugth in locking... skipping !`)))))
   .catch(oops[404].handle(() => page))
 
 actions.release = {
@@ -106,7 +115,7 @@ actions.release = {
 }
 
 const syncAll = flow.stack()
-syncAll.push(() => Promise.all(Array(5).fill().map((_, i) => setProgress(i + 1, Number(i === 4)))))
+//syncAll.push(() => Promise.all(Array(5).fill().map((_, i) => setProgress(i + 1, Number(i === 4)))))
 syncAll.push(() => actions.release.sync(5))
 syncAll.push(() => actions.author.sync(5))
 syncAll.push(() => actions.group.sync(5))
