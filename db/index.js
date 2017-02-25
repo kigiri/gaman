@@ -45,7 +45,7 @@ const toApi = resolveId => {
 
   apiCall.setnx = (id, value) =>
     redis.call('setnx', resolveId(id), JSON.stringify(value))
-      .then(ret => ret || Promise.reject(lockError()))
+      .then(ret => Number(ret) || Promise.reject(lockError()))
 
   return apiCall
 }
