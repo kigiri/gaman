@@ -47,7 +47,8 @@ const syncStatus = (type, id, sync) => {
   const timer = timers[sync.status]
   if (timer && (Date.now() - sync.ts) > timer) {
     console.log(`${type} #${id} timedout, refetch`)
-    throw oops[404]()
+    return db[`${type}Status`].del(id)
+      .then(() => Promise.reject(oops[404]()))
   }
   console.log(`${type} #${id} already ${sync.status}`)
 }
@@ -67,7 +68,7 @@ each((index, type) => {
           getProgress(index)
             .then(lastId => lastId < id && setProgress(index, id)),
         ]))
-        .then(() => console.log(`${type} #${id} - added`))
+        .then(() => (console.log(`${type} #${id} - added`), true))
         .catch(oops[404].handle(err => {
           console.log(`${type} #${id} not found, skipping`)
           notFoundMarkers.push(() => setStatus(type, id, 'not found'))
@@ -99,7 +100,7 @@ const syncRelease = page => db.releaseStatus(page)
         getProgress(5)
           .then(lastId => lastId < page && setProgress(5, page)),
       ]))
-      .then(() => console.log(`release page ${page} - added`)))
+      .then(() => (console.log(`release page ${page} - added`), true)))
     .catch(db.lockError.handle(() =>
       console.log(`${type} #${id} caugth in locking... skipping !`)))))
   .catch(oops[404].handle(() => page))

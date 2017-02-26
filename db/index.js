@@ -40,8 +40,11 @@ const toApi = resolveId => {
       throw oops[404]()
     })
 
+
   apiCall.put = (id, value) =>
     redis.call('set', resolveId(id), JSON.stringify(value))
+
+  apiCall.del = (id, value) => redis.call('del', resolveId(id))
 
   apiCall.setnx = (id, value) =>
     redis.call('setnx', resolveId(id), JSON.stringify(value))
