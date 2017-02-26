@@ -118,10 +118,10 @@ actions.release = {
 const syncAll = flow.stack()
 //syncAll.push(() => Promise.all(Array(5).fill().map((_, i) => setProgress(i + 1, Number(i === 4)))))
 //syncAll.push(() => actions.release.sync(5))
-syncAll.push(() => actions.author.sync(5))
-syncAll.push(() => actions.group.sync(5))
-syncAll.push(() => actions.publisher.sync(5))
-syncAll.push(() => actions.serie.sync(5))
+syncAll.push(() => actions.author.sync(50))
+syncAll.push(() => actions.group.sync(50))
+syncAll.push(() => actions.publisher.sync(50))
+syncAll.push(() => actions.serie.sync(50))
 syncAll.push(flow.delay(60000))
 
 //setProgress(5, 1).then(() =>
