@@ -33,15 +33,20 @@ const setStatus = (type, id, status) => db[`${type}Status`].put(id, {
 })
 
 let lastMsg
-const verbose = str => {
-  lastMsg = str
-  //console.log(str)
+const verbose = str => { lastMsg = str }
+
+let timeout
+const requestLog = () => {
+  clearTimeout(timeout)
+  timeout = setTimeout(() => {
+    requestLog()
+    if (!lastMsg) return
+    console.log(lastMsg)
+    lastMsg = undefined
+  }, 5000)
 }
-setInterval(() => {
-  if (!lastMsg) return
-  console.log(lastMsg)
-  lastMsg = undefined
-}, 2500)
+
+const log = str => requestLog(console.log(str))
 
 const initStatus = (type, id, status) => db[`${type}Status`].setnx(id, {
   status: 'fetching',
@@ -79,7 +84,7 @@ each((index, type) => {
           getProgress(index)
             .then(lastId => lastId < id && setProgress(index, id)),
         ]))
-        .then(() => (console.log(`${type} #${id} - added`), true))
+        .then(() => (log(`${type} #${id} - added`), true))
         .catch(oops[404].handle(err => {
           verbose(`${type} #${id} not found, skipping`)
           notFoundMarkers.push(() => setStatus(type, id, 'not found'))
@@ -93,46 +98,41 @@ each((index, type) => {
       .catch(oops[404].handle(() => scrap[type](id)
         .then(data => db[type].put(id, data)
           .then(() => data)))),
-    sync: tolerance => getProgress(index)
+    sync: tolerance => (log(`begin sync of ${type}`), getProgress(index))
       .catch(oops[404].handle(() => setProgress(index, 0)))
       .then(id => fetcher(syncDocument, id, tolerance)),
   }
 }, types)
 
-const syncRelease = page => db.releaseStatus(page)
-  .then(sync => syncStatus('release', page, sync))
-  .catch(oops[404].handle(() => initStatus('release', page)
-    .then(() => scrap.release(page)
-      .then(data => flow.serie(data.map((release, i) => () =>
-        db.release.put(((page - 1) * 100) + i + 1, release).then(() =>
-          verbose(`release #${((page - 1) * 100) + i + 1} done`))), 25))
-      .then(() => Promise.all([
+const syncRelease = page => setStatus('release', page, 'fetching')
+  .then(() => scrap.release(page)
+    .then(data => flow.serie(data.map((release, i) => () =>
+      db.release.put(((page - 1) * 100) + i + 1, release).then(() =>
+        log(`release #${((page - 1) * 100) + i + 1} done`))), 25)
+      .then(() => data.length > 99 && Promise.all([
         setStatus('release', page, 'stored'),
         getProgress(5)
           .then(lastId => lastId < page && setProgress(5, page)),
-      ]))
-      .then(() => (console.log(`release page ${page} - added`), true)))
-    .catch(db.lockError.handle(() =>
-      verbose(`${type} #${id} caugth in locking... skipping !`)))))
-  .catch(oops[404].handle(() => page))
+      ])))
+    .then(() => (log(`release page ${page} - added`), true)))
 
 actions.release = {
   get: id => db.release(id)
-    .catch(oops[404].handle(() => scrap[type](Math.floor(id / 100))
-      .then(data => db[type].put(id, data[id % 100])
+    .catch(oops[404].handle(() => scrap.release(Math.floor(id / 100))
+      .then(data => db.release.put(id, data[id % 100])
         .then(() => data)))),
-  sync: () => getProgress(5)
+  sync: () => (log(`begin sync of release`), getProgress(5))
     .catch(oops[404].handle(() => setProgress(5, 1)))
-    .then(page => fetcher(syncRelease, page, 0))
+    .then(page => fetcher(syncRelease, page - 1, 0))
 }
 
 const syncAll = flow.stack()
 //syncAll.push(() => Promise.all(Array(5).fill().map((_, i) => setProgress(i + 1, Number(i === 4)))))
-//syncAll.push(() => actions.release.sync(5))
-syncAll.push(() => actions.author.sync(50))
-syncAll.push(() => actions.group.sync(50))
-syncAll.push(() => actions.publisher.sync(50))
-syncAll.push(() => actions.serie.sync(50))
+syncAll.push(() => actions.release.sync(5))
+syncAll.push(() => actions.author.sync(5))
+syncAll.push(() => actions.group.sync(5))
+syncAll.push(() => actions.publisher.sync(5))
+syncAll.push(() => actions.serie.sync(5))
 syncAll.push(flow.delay(60000))
 
 //setProgress(5, 1).then(() =>
