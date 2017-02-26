@@ -32,6 +32,17 @@ const setStatus = (type, id, status) => db[`${type}Status`].put(id, {
   ts: Date.now(),
 })
 
+let lastMsg
+const verbose = str => {
+  lastMsg = str
+  //console.log(str)
+}
+setInterval(() => {
+  if (!lastMsg) return
+  console.log(lastMsg)
+  lastMsg = undefined
+}, 2500)
+
 const initStatus = (type, id, status) => db[`${type}Status`].setnx(id, {
   status: 'fetching',
   ts: Date.now(),
@@ -46,11 +57,11 @@ const actions = {}
 const syncStatus = (type, id, sync) => {
   const timer = timers[sync.status]
   if (timer && (Date.now() - sync.ts) > timer) {
-    console.log(`${type} #${id} timedout, refetch`)
+    verbose(`${type} #${id} timedout, refetch`)
     return db[`${type}Status`].del(id)
       .then(() => Promise.reject(oops[404]()))
   }
-  console.log(`${type} #${id} already ${sync.status}`)
+  verbose(`${type} #${id} already ${sync.status}`)
 }
 
 each((index, type) => {
@@ -70,12 +81,12 @@ each((index, type) => {
         ]))
         .then(() => (console.log(`${type} #${id} - added`), true))
         .catch(oops[404].handle(err => {
-          console.log(`${type} #${id} not found, skipping`)
+          verbose(`${type} #${id} not found, skipping`)
           notFoundMarkers.push(() => setStatus(type, id, 'not found'))
           throw err
         })))
       .catch(db.lockError.handle(() =>
-        console.log(`${type} #${id} caugth in locking... skipping !`)))))
+        verbose(`${type} #${id} caugth in locking... skipping !`)))))
 
   actions[type] = {
     get: id => db[type](id)
@@ -94,7 +105,7 @@ const syncRelease = page => db.releaseStatus(page)
     .then(() => scrap.release(page)
       .then(data => flow.serie(data.map((release, i) => () =>
         db.release.put(((page - 1) * 100) + i + 1, release).then(() =>
-          console.log(`release #${((page - 1) * 100) + i + 1} done`))), 25))
+          verbose(`release #${((page - 1) * 100) + i + 1} done`))), 25))
       .then(() => Promise.all([
         setStatus('release', page, 'stored'),
         getProgress(5)
@@ -102,7 +113,7 @@ const syncRelease = page => db.releaseStatus(page)
       ]))
       .then(() => (console.log(`release page ${page} - added`), true)))
     .catch(db.lockError.handle(() =>
-      console.log(`${type} #${id} caugth in locking... skipping !`)))))
+      verbose(`${type} #${id} caugth in locking... skipping !`)))))
   .catch(oops[404].handle(() => page))
 
 actions.release = {
