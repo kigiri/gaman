@@ -33,7 +33,8 @@ const setStatus = (type, id, status) => db[`${type}Status`].put(id, {
 })
 
 let lastMsg
-const verbose = str => { lastMsg = str }
+//const verbose = str => { lastMsg = str }
+const verbose = str => { console.log(str) }
 
 let timeout
 const requestLog = () => {
@@ -67,6 +68,7 @@ const syncStatus = (type, id, sync) => {
       .then(() => Promise.reject(oops[404]()))
   }
   verbose(`${type} #${id} already ${sync.status}`)
+  return sync.status === 'stored'
 }
 
 each((index, type) => {
@@ -123,16 +125,20 @@ actions.release = {
         .then(() => data)))),
   sync: () => (log(`begin sync of release`), getProgress(5))
     .catch(oops[404].handle(() => setProgress(5, 1)))
-    .then(page => fetcher(syncRelease, page - 1, 0))
+    .then(page => fetcher(syncRelease, page, 0))
 }
 
 const syncAll = flow.stack()
-//syncAll.push(() => Promise.all(Array(5).fill().map((_, i) => setProgress(i + 1, Number(i === 4)))))
+// asyncAll.push(() => Promise.all(Array(5).fill().map((_, i) => setProgress(i + 1, Number(i === 4)))))
+//setProgress(5, 3570)
+
+
+
 syncAll.push(() => actions.release.sync(5))
 syncAll.push(() => actions.author.sync(5))
 syncAll.push(() => actions.group.sync(5))
 syncAll.push(() => actions.publisher.sync(5))
-syncAll.push(() => actions.serie.sync(5))
+syncAll.push(() => actions.serie.sync(250))
 syncAll.push(flow.delay(60000))
 
 //setProgress(5, 1).then(() =>

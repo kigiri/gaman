@@ -1,9 +1,13 @@
 const oops = require('izi/oops')
+const flow = require('izi/flow')
+const map = require('izi/collection/map')
+const { isArr } = require('izi/is')
 const YoRedis = require('yoredis')
 const redis = new YoRedis({ url: 'redis://91.121.220.177:6379' })
 
 global.fetch = require('node-fetch') // poly fetch
 const apiBuilder = require('izi/api-builder')
+const esdb = 'db.oct.ovh'
 const documents = [
   'author',
   'group',
@@ -23,7 +27,7 @@ const addDocument = (acc, key) => (acc[key] = {
   },
 }, acc)
 
-const api = apiBuilder('db.oct.ovh', routes.reduce(addDocument, {
+const api = apiBuilder(esdb, routes.reduce(addDocument, {
   '_count': 'post',
 }))
 
@@ -53,9 +57,32 @@ const toApi = resolveId => {
   return apiCall
 }
 
+const toJSON = r => r.json()
+const firstHit = flow.path('hits.hits.0')
+
+const toMatchStmt = match => ({ match })
+const matchAll = map(toMatchStmt)
+const prepQuery = query => {
+  console.log('search', query)
+  if (isArr(query)) {
+    query = { bool: { should: matchAll(query) } }
+  } else {
+    query = toMatchStmt(query)
+  }
+  return { size: 1, query }
+}
+
 documents.forEach(name => {
   const key = `${name}Status`
+  const url = `http://${esdb}/gaman/${name}/_search`
   module.exports[key] = toApi(id => `${name}-${id}`)
+  const search = module.exports[name].search = query => fetch(url, {
+    headers: { 'Content-Type': 'application/json' },
+    method: 'POST',
+    body: JSON.stringify(query),
+  }).then(toJSON)
+
+  search.stupid = flow(prepQuery, search, firstHit)
 })
 
 module.exports.progress = toApi(id => `progress-${id}`)

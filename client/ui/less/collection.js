@@ -33,7 +33,7 @@ const collectionTitle = h('h1', {
 
 const placeholderBooks = Array(15).fill()
 
-module.exports = (collection, state) => {
+module.exports = (c, state) => {
   const {
     title,
     id,
@@ -43,8 +43,8 @@ module.exports = (collection, state) => {
     next,
     prev,
     booksPerView
-  } = collection
-  const books = collection.books || placeholderBooks
+  } = c
+  const books = c.books || placeholderBooks
   const selected = (id === state.selectedCollection)
 
   return collection([
@@ -66,3 +66,4 @@ module.exports = (collection, state) => {
       pageBtn({ onclick: next }, '>'),
     ])),
   ])
+}
