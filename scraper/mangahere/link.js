@@ -1,12 +1,9 @@
-// mangalist/
-const fetch = require('node-fetch')
 const flow = require('izi/flow')
 const map = require('izi/collection/map')
-const { toText, raw } = require('~/scraper/parse-utils')
+const fetch = require('node-fetch')
 
-// specifics
 const domain = 'http://www.mangahere.co'
-const getDetails = flow(name => fetch('http://www.mangahere.co/ajax/series.php', {
+const getDetails = flow(name => fetch(`${domain}/ajax/series.php`, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     method: 'POST',
     body: `name=${encodeURIComponent(name)}`,

@@ -53,22 +53,20 @@ const fetchId = sourceName => {
 
   return map(({ source, getQuery }) => () => findSource(sourceName, source)
     // I first check if i don't have already set this serie
-    .then(m => {
-      console.log(m)
-      return m
-    })
-    .then(match => !match && getQuery()
+    .then(match => (match && match._id) || getQuery()
       .then(findBestSerie)
       .then(ret => {
-        if (!ret) return source
-        if (getSource(ret) === source) return
-        const { _id, _source } = ret
+        if (!ret) return
 
-        return db.serie
-          .put(_id, merge(_source, { [sourceName]: source }))
-          .then(ret => ret && console.log(ret._id, ret._shards.failed))
+        const { _id, _source } = ret
+        if (getSource(ret) === source) return _id
+
+        return db.serie.put(_id, merge(_source, { [sourceName]: source }))
+          .then(ret => ret.result === 'updated' ? ret._id : undefined)
       }))
-    .catch(err => source))
+    .catch(console.log)
+    .then(_id => (console.log(`${source} -> ${_id ? _id : 'FAILED!'}`),
+      !_id && source)))
 }
 
 const filterEmpty = filter(Boolean)

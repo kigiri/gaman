@@ -63,7 +63,6 @@ const firstHit = flow.path('hits.hits.0')
 const toMatchStmt = match => ({ match })
 const matchAll = map(toMatchStmt)
 const prepQuery = query => {
-  console.log('search', query)
   if (isArr(query)) {
     query = { bool: { should: matchAll(query) } }
   } else {
