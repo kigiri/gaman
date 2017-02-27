@@ -1,16 +1,20 @@
 const flow = require('izi/flow')
 const map = require('izi/collection/map')
-const { toText, raw } = require('~/scraper/parse-utils')
+const { toText, mapGet, num } = require('~/scraper/parse-utils')
 
 const domain = 'http://www.mangapanda.com'
-const getDetails = flow(source => `${domain}${source}`, raw.all({
-  props: '#mangaproperties td:nth-child(even)'
-}), ({ props }) => {
-  const [ name, altNames, year,, author, artist ] = toText(props)
+const expandNames = ({ name, altNames, year, author, artist  }) => [ name ]
+  .concat(altNames.split(', '))
+  .map(title => ({ title, year, author, artist }))
 
-  return [ name ].concat(altNames.split(', '))
-    .map(title => ({ title, year: Number(year), author, artist }))
-})
+const getDetails = flow(source => `${domain}${source}`,
+  mapGet('#mangaproperties td:nth-child(even)', {
+    0: 'name',
+    1: 'altNames',
+    2: { key: 'year', fn: num },
+    4: 'author',
+    5: 'artist',
+  }), expandNames)
 
 module.exports = {
   listUrl: `${domain}/alphabetical`,

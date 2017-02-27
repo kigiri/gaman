@@ -1,6 +1,8 @@
+const flow = require('izi/flow')
 const { $, $$, raw, toText } = require('izi/parkour')
 
 const camelCase = require('lodash/camelCase')
+const _path = flow.path('path')
 
 const cleanCat = str => {
   const idx = str.search(/[^A-Za-z ]/)
@@ -32,16 +34,29 @@ const href = el => {
   return a && a.attribs.href
 }
 
+const mapArr = (mapping, fallback) => arr => arr.reduce((result, val, i) => {
+  const handler = mapping[i]
+  if (!handler) return result
+  const { key, fn } = handler
+  result[key || handler] = fn ? fn(val) : (fallback || toText)(val)
+  return result
+}, {})
+
+const get = path => flow(raw.all({ path }), _path)
+const mapGet = (path, mapping) => flow(get(path), mapArr(mapping))
 
 module.exports = {
   $,
   $$,
+  get,
   raw,
   num,
   bool,
   href,
   imgSrc,
   toText,
+  mapGet,
+  mapArr,
   linkIds,
   allLines,
   cleanKey: el => camelCase(cleanCat(toText(el))),
