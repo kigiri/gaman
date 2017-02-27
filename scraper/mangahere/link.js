@@ -20,16 +20,20 @@ const getDetailsFallback = flow(mapGet('.detail_topText li', {
  4: { key: 'author', fn: cleanup },
  5: { key: 'artist', fn: cleanup },
  8: { key: 'name', fn: flow.pipe($.h2, toText) },
-}), ({ name, altNames, author, artist }) => [ name ]
-  .concat(altNames.split('; '))
-  .map(title => ({ title, author, artist })))
+}), ({ name, altNames, author, artist }) => (altNames
+  ? altNames.split('; ').concat([ name ])
+  : [ name ]).map(title => ({ title, author, artist })))
+
+getDetailsFallback(`${domain}/manga/blue_cat_happy`)
+  .then(console.log)
 
 module.exports = {
   listUrl: `${domain}/mangalist`,
   path: 'a.manga_info',
   buildQueries: map(a => ({
     source: a.attribs.href.slice(30, -1),
-    getQuery: () => getDetails(a.attribs.rel)
-      .catch(err => getDetailsFallback(a.attribs.href)),
+    getQuery: () => getDetailsFallback(a.attribs.href)
+      //getDetails(a.attribs.rel)
+      //.catch(err => getDetailsFallback(a.attribs.href)),
   })),
 }

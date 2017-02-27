@@ -30,26 +30,39 @@ const matchAuthor = opts => {
   return flow.all(opts)
 }
 
-const findSerie = flow(matchAuthor, ({ title, year, author, artist }) => [
-  { title: { query: title,  boost: 1000 } },
-  { associatedNames: title },
-  author && ({ author: { query: author, boost: 500 } }),
-  artist && ({ artist: { query: artist, boost: 500 } }),
-  year && ({ year: { query: year, boost: 500 } }),
-].filter(Boolean), db.serie.search.stupid)
-
-const findBestSerie = flow([
-  val => isArr(val) ? val : [ val ],
-  map(findSerie),
-  flow.all,
-  flow(sortByScore, first)
-])
-
 const findSource = (sourceName, source) => 
   db.serie.search.stupid({ [sourceName]: source })
 
-const fetchId = sourceName => {
+
+const getIds = flow([
+  groups => ({ size: 10000, query: { match: { groups  } } }),
+  db.release.search,
+  flow.path('hits.hits'),
+  map(flow.path('_source.title')),
+  filter(Boolean),
+  filter((val, i, a) => a.indexOf(val) === i),
+])
+
+const fetchId = (sourceName, teamId) => {
   const getSource = flow.path(['_source', sourceName ])
+
+  const ids = teamId ? getIds(teamId) : Promise.resolve()
+  const getSerie = query => ids.then(_id => db.serie.search.stupid(query, _id))
+
+  const findSerie = flow(matchAuthor, ({ title, year, author, artist }) => [
+    { title: { query: title,  boost: 1000 } },
+    { associatedNames: title },
+    author && ({ author: { query: author, boost: 500 } }),
+    artist && ({ artist: { query: artist, boost: 500 } }),
+    year && ({ year: { query: year, boost: 500 } }),
+  ].filter(Boolean), getSerie)
+
+  const findBestSerie = flow([
+    val => isArr(val) ? val : [ val ],
+    map(findSerie),
+    flow.all,
+    flow(sortByScore, first)
+  ])
 
   return map(({ source, getQuery }) => () => findSource(sourceName, source)
     // I first check if i don't have already set this serie
@@ -65,14 +78,16 @@ const fetchId = sourceName => {
           .then(ret => ret.result === 'updated' ? ret._id : undefined)
       }))
     .catch(console.log)
-    .then(_id => (console.log(`${_id ? ('#'+_id) : 'Not found !'} ${sourceName}: ${source}`),
-      !_id && source)))
+    .then(_id => (console.log(`${_id
+      ? ('#'+_id)
+      : 'Not found !'} ${sourceName}: ${source}`), !_id && source)))
 }
 
 const filterEmpty = filter(Boolean)
-module.exports = (sourceName, { listUrl, path, buildQueries }) => {
+module.exports = (sourceName, { listUrl, path, buildQueries, teamId }) => {
   const serieList = raw.all({ path })
-  const linkIds = flow(fetchId(`${sourceName}Ref`), flow.serie.workers(2))
+  const linkIds = flow(fetchId(`${sourceName}Ref`, teamId),
+    flow.serie.workers(2))
 
   return serieList(listUrl)
     .then(ret => buildQueries(ret.path))

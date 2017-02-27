@@ -2,7 +2,7 @@ const flow = require('izi/flow')
 const map = require('izi/collection/map')
 const { toText, mapGet, num } = require('~/scraper/parse-utils')
 
-const domain = 'http://www.mangapanda.com'
+const domain = 'http://www.mangareader.net'
 const expandNames = ({ name, altNames, year, author, artist  }) => [ name ]
   .concat(altNames.split(', '))
   .map(title => ({ title, year, author, artist }))
