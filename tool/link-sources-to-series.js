@@ -15,6 +15,6 @@ curl -XPUT 'db.oct.ovh/gaman/_mapping/serie?pretty' -H 'Content-Type: applicatio
 
 Promise.all([
   'mangapanda',
-//  'mangahere',
+  'mangahere',
 ].map(source => linker(source, require(`~/scraper/${source}/link`))))
   .then(console.log, console.dir)

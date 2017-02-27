@@ -15,7 +15,7 @@ module.exports = {
   listUrl: `${domain}/mangalist`,
   path: 'a.manga_info',
   buildQueries: map(a => ({
-    source: a.attribs.href.slice(30),
+    source: a.attribs.href.slice(30, -1),
     getQuery: () => getDetails(a.attribs.rel),
   })),
 }

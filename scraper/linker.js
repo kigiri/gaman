@@ -65,7 +65,7 @@ const fetchId = sourceName => {
           .then(ret => ret.result === 'updated' ? ret._id : undefined)
       }))
     .catch(console.log)
-    .then(_id => (console.log(`${source} -> ${_id ? _id : 'FAILED!'}`),
+    .then(_id => (console.log(`${_id ? ('#'+_id) : 'Not found !'} ${sourceName}: ${source}`),
       !_id && source)))
 }
 
