@@ -1,6 +1,7 @@
 const oops = require('izi/oops')
 const flow = require('izi/flow')
 const map = require('izi/collection/map')
+const filter = require('izi/collection/filter')
 const { isArr } = require('izi/is')
 const YoRedis = require('yoredis')
 const redis = new YoRedis({ url: 'redis://91.121.220.177:6379' })
@@ -31,12 +32,12 @@ const api = apiBuilder(esdb, routes.reduce(addDocument, {
   '_count': 'post',
 }))
 
-module.exports = api.gaman
-module.exports._source = res => res._source
+const db = module.exports = api.gaman
+db._source = res => res._source
 
-const lockError = module.exports.lockError = oops('redis-locked-error')
+const lockError = db.lockError = oops('redis-locked-error')
 
-const toApi = resolveId => {
+const redisApi = resolveId => {
   const apiCall = id => redis.call('get', resolveId(id))
     .then(JSON.parse)
     .then(val => {
@@ -79,8 +80,8 @@ const prepQuery = (query, _id) => {
 documents.forEach(name => {
   const key = `${name}Status`
   const url = `http://${esdb}/gaman/${name}/_search`
-  module.exports[key] = toApi(id => `${name}-${id}`)
-  const search = module.exports[name].search = query => fetch(url, {
+  db[key] = redisApi(id => `${name}-${id}`)
+  const search = db[name].search = query => fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     method: 'POST',
     body: JSON.stringify(query),
@@ -89,4 +90,13 @@ documents.forEach(name => {
   search.stupid = flow(prepQuery, search, firstHit)
 })
 
-module.exports.progress = toApi(id => `progress-${id}`)
+db.group.getSeries = flow([
+  groups => ({ size: 10000, query: { match: { groups } } }),
+  db.release.search,
+  flow.path('hits.hits'),
+  map(flow.path('_source.title')),
+  filter(Boolean),
+  filter((val, i, a) => a.indexOf(val) === i),
+])
+
+db.progress = redisApi(id => `progress-${id}`)

@@ -5,4 +5,4 @@ apt-get install -y git
 git clone http://github.com/kigiri/gaman
 cd gaman
 /usr/local/n/versions/node/7.6.0/bin/npm install --unsafe-perm
-/usr/local/n/versions/node/7.6.0/bin/node scraper/manga-update/index.js
+/usr/local/n/versions/node/7.6.0/bin/node scraper/mangaupdate/index.js
