@@ -106,17 +106,21 @@ each((index, type) => {
   }
 }, types)
 
-const syncRelease = page => setStatus('release', page, 'fetching')
-  .then(() => scrap.release(page)
-    .then(data => flow.serie(data.map((release, i) => () =>
-      db.release.put(((page - 1) * 100) + i + 1, release).then(() =>
-        log(`release #${((page - 1) * 100) + i + 1} done`))), 25)
-      .then(() => data.length > 99 && Promise.all([
-        setStatus('release', page, 'stored'),
-        getProgress(5)
-          .then(lastId => lastId < page && setProgress(5, page)),
-      ])))
-    .then(() => (log(`release page ${page} - added`), true)))
+const syncRelease = page => db.releaseStatus(page)
+  .then(sync => syncStatus('release', page, sync))
+  .catch(oops[404].handle(() => initStatus('release', page)
+    .then(() => scrap.release(page)
+      .then(data => flow.serie(data.map((release, i) => () =>
+        db.release.put(((page - 1) * 100) + i + 1, release).then(() =>
+          log(`release #${((page - 1) * 100) + i + 1} done`))), 25)
+        .then(() => data.length > 99 && Promise.all([
+          setStatus('release', page, 'stored'),
+          getProgress(5)
+            .then(lastId => lastId < page && setProgress(5, page)),
+        ])))
+      .then(() => (log(`release page ${page} - added`), true))
+      .catch(db.lockError.handle(() =>
+        verbose(`release page ${page} caugth in locking... skipping !`))))))
 
 actions.release = {
   get: id => db.release(id)
