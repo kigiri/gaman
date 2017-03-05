@@ -28,7 +28,7 @@ const getDetailsFallback = flow(mapGet('.detail_topText li', {
  8: { key: 'name', fn: flow.pipe($.h2, toText) },
 }), ({ name, altNames, author, artist }) => (altNames
   ? altNames.split('; ').concat([ name ])
-  : [ name ]).map(title => ({ title, author, artist })))
+  : [ name ]).map(title => filter({ title, author, artist })))
 
 const blackList = [
   'a_method_to_make_the_world_gentle',
@@ -48,11 +48,14 @@ module.exports = {
   listUrl: `${domain}/mangalist`,
   path: 'a.manga_info',
   buildQueries: flow.pipe([
-    filter(a => blackList.indexOf(a.attribs.href.slice(30, -1)) === -1),
+    filter(a => blackList.indexOf(a.attribs.href.slice(30, -1)) !== -1),
+    //filter(a => blackList.indexOf(a.attribs.href.slice(30, -1)) === -1),
     map(a => ({
       source: a.attribs.href.slice(30, -1),
-      getQuery: () => getDetails(a.attribs.rel)
-        .catch(err => getDetailsFallback(a.attribs.href)),
+      getQuery: [
+        () => getDetails(a.attribs.rel).then(res => res && res.year && res),
+        () => getDetailsFallback(a.attribs.href),
+      ],
     })),
   ]),
 }

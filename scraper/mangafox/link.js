@@ -28,6 +28,18 @@ const getDetails = f([
 
 // fallback if tooltip info isn't available
 const cleanup = f.pipe(toText, txt => txt.slice(txt.indexOf(':') + 1).trim())
+
+const getDetailsFallback = (url) => get(url)
+  .then(el => {
+    const matches = el.querySelectorAll('.detail_topText li')
+    return {
+      altnames: cleanup(match[2]),
+      author: cleanup(match[4]),
+      artist: cleanup(match[5]),
+      name: toText($.h2(match[8])),
+    }
+  }).then(spread)
+
 const getDetailsFallback = f(mapGet('.detail_topText li', {
  2: { key: 'altNames', fn: cleanup },
  4: { key: 'author', fn: cleanup },
@@ -46,8 +58,10 @@ module.exports = {
   path: 'manga_list li',
   buildQueries: map(a => ({
     source: a.attribs.href.slice(25, -1),
-    getQuery: () => getDetails(a.attribs.rel)
-      .catch(err => getDetailsFallback(a.attribs.href)),
+    getQuery: [
+      () => getDetails(a.attribs.rel),
+      () => getDetailsFallback(a.attribs.href),
+    ],
   })),
   chapters: f([
     ref => `${domain}/manga/${ref}`,
